@@ -17,9 +17,9 @@ N = nn.Sequential(nn.Linear(10, 10, bias=False),
 x = torch.rand((1,10)) # the first dimension is the batch size; the following dimensions the actual dimension of the data
 x.requires_grad_() # this is required so we can compute the gradient w.r.t x
 
-t = 0 # target class
+t = 1 # target class
 
-epsReal = 0.5  #depending on your data this might be large or small
+epsReal = 5  #depending on your data this might be large or small
 eps = epsReal - 1e-7 # small constant to offset floating-point erros
 
 # The network N classfies x as belonging to class 2
@@ -36,7 +36,24 @@ loss.backward()
 # your code here
 # adv_x should be computed from x according to the fgsm-style perturbation such that the new class of xBar is the target class t above
 # hint: you can compute the gradient of the loss w.r.t to x as x.grad
-adv_x = TODO
+adv_x = x.clone().detach()
+
+for i in range(100):
+    adv_x.requires_grad_()
+    pred = N(adv_x).argmax(dim=1).item()
+    if pred == t:
+        break
+    loss = L(N(adv_x), torch.tensor([t]))
+    if adv_x.grad is not None:
+        adv_x.grad.zero_()
+    loss.backward()
+
+    adv_x = adv_x - 1 * torch.sign(adv_x.grad)
+    adv_x = torch.clamp(adv_x, x - eps, x + eps)
+    adv_x = adv_x.detach()  
+
+
+#adv_x = x-eps*torch.sign(x.grad)
 
 new_class = N(adv_x).argmax(dim=1).item()
 print("New Class: ", new_class)
